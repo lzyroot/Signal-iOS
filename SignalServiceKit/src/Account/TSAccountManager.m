@@ -13,6 +13,7 @@
 #import "TSPreKeyManager.h"
 #import "TSSocketManager.h"
 #import "TSStorageManager+keyingMaterial.h"
+#import "TSStorageManager+SessionStore.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -76,6 +77,17 @@ NSString *const TSAccountManager_LocalRegistrationIdKey = @"TSStorageLocalRegist
                                                            userInfo:nil];
 }
 
+- (void)resetForRegistration
+{
+    @synchronized (self) {
+        _isRegistered = NO;
+        _cachedLocalNumber = nil;
+        _phoneNumberAwaitingVerification = nil;
+        [self removeStoredLocalNumber];
+    }
+    [[TSStorageManager sharedManager] resetSessionStore];
+}
+
 + (BOOL)isRegistered
 {
     return [[self sharedInstance] isRegistered];
@@ -131,6 +143,14 @@ NSString *const TSAccountManager_LocalRegistrationIdKey = @"TSStorageLocalRegist
     }
 
     return self.cachedLocalNumber;
+}
+
+- (void)removeStoredLocalNumber
+{
+    @synchronized (self) {
+        [self.dbConnection removeObjectForKey:TSAccountManager_RegisteredNumberKey
+                                 inCollection:TSStorageUserAccountCollection];
+    }
 }
 
 - (nullable NSString *)storedLocalNumber
